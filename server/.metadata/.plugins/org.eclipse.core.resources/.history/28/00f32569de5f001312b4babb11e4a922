@@ -1,0 +1,304 @@
+package com.example.finalprj;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.View;
+import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class GameActivity extends Activity {
+	final int ackTimeout = 2000;
+	RadioGroup BoardColumn0;
+	private String user;
+	private String fight_name;
+	Button btn;
+	AliveThread at = null;
+	
+	boolean MyTure = false;
+	
+	RadioButton[][] board = new RadioButton[9][9];
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_game);
+		
+		final Drawable blackIcon = getResources().getDrawable( R.drawable.black );
+		final Drawable whiteIcon = getResources().getDrawable( R.drawable.white );
+		
+		btn = (Button) findViewById(R.id.stop);
+		
+		Bundle b = getIntent().getExtras();
+		user = b.getString("_USER");
+		fight_name = b.getString("_FIGHT_NAME");
+		
+		TextView txtv2 =  (TextView) findViewById(R.id.textView2);
+		txtv2.setText(user);
+		TextView txtv3 = (TextView) findViewById(R.id.textView3);
+		txtv3.setText(fight_name);
+		
+		at = new AliveThread();
+		at.start();
+		
+		BoardColumn0 = (RadioGroup) findViewById(R.id.rg0);
+		board[0][0] = (RadioButton)findViewById(R.id.radio00);
+		board[0][1] = (RadioButton)findViewById(R.id.radio01);
+		board[0][2] = (RadioButton)findViewById(R.id.radio02);
+		board[0][3] = (RadioButton)findViewById(R.id.radio03);
+		board[0][4] = (RadioButton)findViewById(R.id.radio04);
+		board[0][5] = (RadioButton)findViewById(R.id.radio05);
+		board[0][6] = (RadioButton)findViewById(R.id.radio06);
+		board[0][7] = (RadioButton)findViewById(R.id.radio07);
+		board[0][8] = (RadioButton)findViewById(R.id.radio08);
+		
+		
+		BoardColumn0.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.radio00:
+					x="0";	y="0";
+					board[0][0].setEnabled(false);
+					board[0][0].setBackground(blackIcon);
+					break;
+				case R.id.radio01:
+					x="0";	y="1";
+					board[0][1].setEnabled(false);
+					board[0][1].setBackground(blackIcon);
+					break;
+				case R.id.radio02:
+					x="0";	y="2";
+					board[0][2].setEnabled(false);
+					board[0][2].setBackground(blackIcon);
+					break;
+				case R.id.radio03:
+					x="0";	y="3";
+					board[0][3].setEnabled(false);
+					board[0][3].setBackground(blackIcon);
+					break;
+				case R.id.radio04:
+					x="0";	y="4";
+					board[0][4].setEnabled(false);
+					board[0][4].setBackground(blackIcon);
+					break;
+				case R.id.radio05:
+					x="0";	y="5";
+					board[0][5].setEnabled(false);
+					board[0][5].setBackground(blackIcon);
+					break;
+				case R.id.radio06:
+					x="0";	y="6";
+					board[0][6].setEnabled(false);
+					board[0][6].setBackground(blackIcon);
+					break;
+				
+				case R.id.radio07:
+					x="0";	y="7";
+					board[0][7].setEnabled(false);
+					board[0][7].setBackground(blackIcon);
+					break;
+				case R.id.radio08:
+					x="0";	y="8";
+					board[0][8].setEnabled(false);
+					board[0][8].setBackground(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+			
+			}
+		});
+		
+		btn.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if(at.flag == true){
+					at.flag = false;
+					at.interrupt();
+					at = null;
+				}
+			}
+		});
+	}
+	
+	private class SocketSend extends AsyncTask<String, Void, Void> {
+		byte[] sentbuf= new byte[1024];
+		byte[] revbuf= new byte[1024];
+		SocketAddress dstEP; 
+		InetAddress  dstIP;
+		Socket socket = null;
+		
+		final int dstPort = 30003;		// game server
+		String type;
+		String user;
+		@Override
+        protected void onPreExecute() {
+			super.onPreExecute();
+        	try{
+        		dstIP = InetAddress.getByName("192.168.0.3");
+        		dstEP = new InetSocketAddress(dstIP,dstPort);
+        	}
+        	catch(UnknownHostException e){
+        	}
+        	
+		}
+		
+        @Override
+        protected Void doInBackground(String... params) {
+        	type = params[1];
+        	String TransStr = "";
+        	if(type == "ack"){
+        		TransStr += "ack:" + params[0];
+        	}else if(type == "draw"){
+        		TransStr += "d:" +params[0]+":"+ params[2] +":"+ params[3];	//d:user:x:y
+        		MyTure = false;
+        	}
+        	
+        	try{
+				socket = new Socket();
+						
+				socket.connect(dstEP,2000);
+						
+				OutputStream out = null;
+				InputStream in = null;
+						
+				out = socket.getOutputStream();
+				in = socket.getInputStream();
+				
+				System.arraycopy(TransStr.getBytes(), 0, sentbuf, 0, TransStr.length());
+				
+				out.write(sentbuf);
+				revbuf = new byte[1024];
+				in.read(revbuf);
+				socket.close();
+					
+	        }catch(SocketException e){
+	        //	txtv.setText(e.toString());
+	        }catch(IOException e){
+	        //	txtv.setText(e.toString());
+	        }
+        	
+        	return null;
+        }
+        
+        @SuppressLint("NewApi")
+		@Override
+        protected void onPostExecute(Void unused) {
+        	//final Drawable blackIcon = getResources().getDrawable( R.drawable.black );
+			final Drawable whiteIcon = getResources().getDrawable( R.drawable.white );
+			
+			
+			
+        	if(type == "ack"){
+        	//	Toast.makeText(GameActivity.this, new String(revbuf), Toast.LENGTH_SHORT).show();
+        		String[] cmd = new String(revbuf).trim().split(":");
+        		//Iswin : winner : Isupdate : x(update) : y(update)
+        		if(cmd[0].equals("w")){
+        			at.flag = false;
+    				at.interrupt();
+    				at = null;
+        			
+        			if(cmd[1].equals("y")){
+        				Toast.makeText(GameActivity.this, "you win!", Toast.LENGTH_LONG).show();
+        			}else if(cmd[1] == "n"){
+        				Toast.makeText(GameActivity.this, "you lose!", Toast.LENGTH_LONG).show();
+        			}
+        			//return to main form
+        		}else if(cmd[0].equals("n")){
+        			if(cmd[2].equals("y")){
+        				int x = Integer.valueOf(cmd[3].trim()).intValue();
+        				int y = Integer.valueOf(cmd[4].trim()).intValue();
+        				
+        				if(x == 0 && y == 0);
+        				else{
+        					board[x][y].setBackground(whiteIcon);
+        					board[x][y].setEnabled(false);
+        				}
+        				Toast.makeText(GameActivity.this, "your turn", Toast.LENGTH_LONG).show();
+        				MyTure = true;
+        			//	TextView tv = (TextView) findViewById(R.id.msg);
+        			//	tv.setText(cmd[3]+","+cmd[4]);
+        			}else if(cmd[2].equals("n")){
+        				//
+        			}
+        		}
+        		
+        	}else if(type == "draw"){
+        		
+        		String[] cmd = new String(revbuf).split(":");
+        		if(cmd[0].equals("w")){
+        			at.flag = false;
+    				at.interrupt();
+    				at = null;
+        			Toast.makeText(GameActivity.this, "you win!", Toast.LENGTH_LONG).show();
+        			
+        		}
+        		if(cmd[0].equals("n")){
+        			//
+        		}
+        		
+        	}
+    	}
+	}
+	
+	private void SetEnable(Boolean set){
+		
+	}
+	
+	private class AliveThread extends Thread{
+		
+		boolean flag = true;
+		
+		@Override
+		public void run(){
+			while(flag){
+				new SocketSend().execute(user,"ack");
+					
+				try{
+					Thread.sleep(ackTimeout);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}
+
+/*
+ <RadioButton
+            android1:id="@+id/radio0"
+            android1:layout_width="24dp"
+            android1:layout_height="23dp"
+            android1:background="@drawable/condition"
+            android1:button="@null" />
+ * */

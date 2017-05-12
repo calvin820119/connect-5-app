@@ -1,0 +1,466 @@
+package com.example.finalprj;
+
+// import java network file
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
+import android.view.Menu;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class MainActivity extends Activity {
+
+	final int ackTimeout = 2000;
+	private PowerManager mPowerManager;
+	private WakeLock mWakeLock;
+	private boolean IsServerAlive = true;
+	Button btn1,btn2,exitbtn;//,btn3;
+	EditText txt;
+	TextView txtv;
+	RadioGroup gameBoard;
+	ListView lv;
+	boolean IsLogin = false;
+	String MainUser = null;
+	InetAddress serverAddr; 
+	Socket socket = null;
+	byte[] buf = new byte[1024];
+	AliveThread alivethread = null; 
+	ArrayAdapter<String> adapter;
+	String ServerIP = "";
+	InetAddress  dstIP;
+	ProgressDialog MessageDialog;
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		
+		btn1 = (Button) findViewById(R.id.ConnectBtn);
+		btn2 = (Button) findViewById(R.id.button1);
+	//	btn3 = (Button) findViewById(R.id.button2);
+		txt = (EditText) findViewById(R.id.MsgTxt);
+		txtv = (TextView) findViewById(R.id.msg);
+		lv = (ListView) findViewById(R.id.listView1);
+		adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1);
+		
+		IsLogin = false;
+		SetLoginEnable(IsLogin);
+		
+		MessageDialog = new ProgressDialog(MainActivity.this);
+		MessageDialog.setCancelable(false);
+		
+		mPowerManager = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
+		mWakeLock = mPowerManager.newWakeLock(mPowerManager.SCREEN_BRIGHT_WAKE_LOCK, "BackLight");
+		mWakeLock.acquire();
+		SharedPreferences settings = getSharedPreferences("_PreSetting",0); 
+		((EditText)findViewById(R.id.txtIP)).setText(settings.getString("serverip", ""));
+		txt.setText(settings.getString("username", ""));
+		
+		btn1.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				try {
+					ServerIP = ((EditText)findViewById(R.id.txtIP)).getText().toString();
+					dstIP = InetAddress.getByName( ServerIP );
+				//	IntentFilter intentfilter = new IntentFilter("serverip");
+					SharedPreferences settings = getSharedPreferences("_PreSetting",0);
+					settings.edit().putString("serverip", ServerIP).commit();
+					settings.edit().putString("username", txt.getText().toString()).commit();
+				//	ServerIP
+				} catch (UnknownHostException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			//	MainUser = txt.getText().toString();
+			//	IsLogin = true;
+			//	SetLoginEnable(IsLogin);
+				new SocketSend().execute(txt.getText().toString(),"login");
+				
+			}
+		});
+		
+		 btn2.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				
+				IsLogin = false;
+				SetLoginEnable(IsLogin);
+				// TODO Auto-generated method stub
+				new SocketSend().execute(txt.getText().toString(),"logout");
+				
+			}
+		});
+		 /*
+		 btn3.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				Intent i = new Intent();
+				Bundle b = new Bundle();
+				
+				i.setClass(MainActivity.this, GameActivity.class);
+				startActivity(i);
+				MainActivity.this.finish();
+			}
+		});*/
+		 
+		 
+		 lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+ 			public void onItemClick(AdapterView arg0,View arg1,int arg2,long arg3){
+ 				ListView listview = (ListView) arg0;
+ 				final String Suser = listview.getItemAtPosition(arg2).toString();
+ 				//listview.setClickable(true);
+ 				new AlertDialog.Builder(MainActivity.this).setTitle("挑戰玩家").setMessage("玩家: "+Suser).setPositiveButton("挑戰!", new DialogInterface.OnClickListener() {
+						
+						@SuppressWarnings("deprecation")
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							//new ChallengeSend().execute(user,Suser);
+							MessageDialog.setMessage("等待回復中....");
+							MessageDialog.setButton("cancel", new DialogInterface.OnClickListener() {
+								
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									// TODO Auto-generated method stub
+									//cancel challenage
+									new SocketSend().execute(txt.getText().toString(),"cancelch",Suser);
+								}
+							});
+							
+							MessageDialog.setCancelable(false);
+							MessageDialog.show();
+							
+							
+					    
+							
+							
+							new SocketSend().execute(txt.getText().toString(),"challenage",Suser);
+							
+						}
+					}).setNegativeButton("取消", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							
+						}
+					}).setCancelable(false).show();
+ 			}
+			});
+		 exitbtn = (Button)findViewById(R.id.exitbtn);
+		 exitbtn.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if(alivethread != null)
+				if(alivethread.flag == true){
+					alivethread.flag = false;
+					alivethread.interrupt();
+					alivethread = null;
+				}
+				MainActivity.this.finish();
+			}
+		});
+	}
+	
+	private void SetLoginEnable(boolean set){
+		findViewById(R.id.ConnectBtn).setEnabled(!set);
+		findViewById(R.id.button1).setEnabled(set);
+		findViewById(R.id.MsgTxt).setEnabled(!set);
+		if(!set){
+			((TextView)findViewById(R.id.alivecount)).setText("");
+			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1);
+			adapter.clear();
+			((ListView) findViewById(R.id.listView1)).setAdapter(adapter);
+		}
+		((EditText)findViewById(R.id.txtIP)).setEnabled(!set);
+	}
+	
+	private AlertDialog ab;
+	
+	
+	private class SocketSend extends AsyncTask<String, Void, Void> {
+		byte[] sentbuf= new byte[1024];
+		byte[] revbuf= new byte[1024];
+		
+		SocketAddress dstEP; 
+		
+		Socket socket = null;
+		
+		final int dstPort = 30001;
+		String type;
+		String user;
+		
+		@Override
+        protected void onPreExecute() {
+			super.onPreExecute();
+			
+			
+        //	try{
+        	//	dstIP = InetAddress.getByName("192.168.0.3");
+        		dstEP = new InetSocketAddress(dstIP,dstPort);
+        //	}
+        //	catch(UnknownHostException e){
+        //		txtv.setText(e.toString());
+        //	}
+		}
+		
+        @Override
+        protected Void doInBackground(String... params) {
+        	type = params[1];
+        	user = params[0];
+        	//txtv1.setText(type);
+        	IsServerAlive = true;
+	        try{
+				socket = new Socket();
+				
+				socket.connect(dstEP,2000);
+				
+				OutputStream out = null;
+				InputStream in = null;
+						
+				out = socket.getOutputStream();
+				in = socket.getInputStream();
+				
+				String TransStr = "";
+				
+				if(type == "login"){
+					TransStr = "s:"+user;
+	        	}else if(type == "logout"){
+	        		TransStr = "o:"+user;
+	        	}else if(type == "ack"){
+	        		TransStr = "ack:"+user;
+	        	}else if(type == "challenage"){
+	        		TransStr = "ch:"+user+":"+params[2];
+	        	}else if(type == "fight"){
+	        		TransStr = "f:"+user+":"+params[2];
+	        	}else if(type == "ignore"){
+	        		TransStr = "i:"+params[2]+":"+user;
+	        	}else if(type == "cancelch"){
+	        		TransStr = "cch:"+params[2];
+	        	}
+				sentbuf = new byte[TransStr.length() + 10];
+				//System.arraycopy(TransStr.getBytes(), 0, sentbuf, 0, TransStr.length());
+				sentbuf = TransStr.getBytes("UTF-16");
+				
+				
+				out.write(sentbuf);
+				revbuf = new byte[1024];
+				in.read(revbuf);
+				socket.close();
+	        }catch (UnknownHostException e) {
+	        	IsServerAlive = false;
+	        	e.printStackTrace();
+	        	return null;
+	        }catch(SocketException e){
+	        	e.printStackTrace();
+	        	return null;
+	        }catch(IOException e){
+	        	IsServerAlive = false;
+	        	e.printStackTrace();
+	        	return null;
+	        }
+	        return null;
+        }        
+
+        @Override
+        protected void onPostExecute(Void unused) {
+        	
+        	if(IsServerAlive){
+	        	if(type == "login"){
+	        		String[] cmd = new String(revbuf).split(":");
+	        		if(cmd[0] == "e" && cmd[1] == "r" ){
+		        		txtv.setText("Name Reserved !");
+	        		}else{
+	        			//txtv.setText(new String(revbuf));
+		        		if(alivethread == null){
+		        			alivethread = new AliveThread();
+		        			alivethread.start();
+		        		}
+	        		}
+	        		//***
+	        		MainUser = txt.getText().toString();
+					IsLogin = true;
+					SetLoginEnable(IsLogin);
+	        		
+	        	}else if(type == "logout"){
+	        		String[] cmd = new String(revbuf).split(":");
+	        		if(cmd[0] == "e" && cmd[1] == "nf"){
+	        			//txtv.setText("Not found");
+	        		}else{
+	        			if(alivethread != null){
+	        				alivethread.flag = false;
+	        				alivethread.interrupt();
+	        				alivethread = null;
+	        			}
+	        		}
+	        	}else if(type == "ack"){
+	        		final String[] cmd = new String(revbuf).trim().split(":");
+	        	//	txtv.setText(new String(cmd[1]));
+	        		
+	        		if(cmd[1].equals("emp")){
+	        		//	adapter.clear();
+	        		//	((TextView)findViewById(R.id.alivecount)).setText("");
+		        	//	lv.setAdapter(adapter);
+		        		
+		        	//	IsLogin = false;
+					//	SetLoginEnable(IsLogin);
+	        			if(alivethread != null){
+	        				alivethread.flag = false;
+	        				alivethread.interrupt();
+	        				alivethread = null;
+	        			}
+	        			
+		        		Toast.makeText(MainActivity.this, "請重新登入", Toast.LENGTH_LONG);
+		        		
+		        		Intent i = new Intent();
+		        		i.setClass(MainActivity.this, MainActivity.class);
+		        		startActivity(i);
+		        		
+		        		
+	        		}else{
+	        		
+		        		adapter.clear();
+		        		int alivecount = 0;
+		        		for(int i=6;i<cmd.length;i++){
+		        			alivecount++;
+		        			if(!cmd[i].equals(MainUser)){
+		        				adapter.add(cmd[i]);
+		        			}
+		        		}
+		        		
+		        		((TextView)findViewById(R.id.alivecount)).setText("會員上線人數:"+alivecount);
+		        		lv.setAdapter(adapter);
+		        		
+		        		if(cmd[1].equals(new String("y"))){
+		        		//	Toast.makeText(MainActivity.this, cmd[2], Toast.LENGTH_SHORT).show();
+		        			ab = new AlertDialog.Builder(MainActivity.this).setTitle("有玩家挑戰你").setMessage("玩家: "+cmd[2]).setPositiveButton("接受!", new DialogInterface.OnClickListener() {
+								
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									// TODO Auto-generated method stub
+									//new ChallengeSend().execute(user,Suser);
+									MessageDialog.setMessage("傳送中....");
+									MessageDialog.show();
+									new SocketSend().execute(txt.getText().toString(),"fight",cmd[2]);
+									
+								}
+							}).setNegativeButton("拒絕", new DialogInterface.OnClickListener() {
+								
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									// TODO Auto-generated method stub
+									new SocketSend().execute(txt.getText().toString(),"ignore",cmd[2]);
+								}
+							}).setCancelable(false).show();
+		        		}else if(cmd[1].equals(new String("c"))){
+		        			ab.dismiss();
+		        			Toast.makeText(MainActivity.this, "玩家已取消挑戰!", Toast.LENGTH_SHORT).show();
+		        		}
+		        		
+		        		
+		        		if(cmd[3].equals(new String("y"))){
+		        			alivethread.flag = false;
+		    				alivethread.interrupt();
+		    				alivethread = null;
+		        			
+		    				MessageDialog.dismiss();
+		        			//fight
+		        			Intent i = new Intent();
+		    				Bundle b = new Bundle();
+		    				b.putString("_USER", txt.getText().toString());
+		    				b.putString("_FIGHT_NAME", cmd[4]);
+		    				b.putString("_GAMD_ID", cmd[5]);
+		    				b.putString("_SERVER_IP", ServerIP);
+		    				i.putExtras(b);
+		    				i.setClass(MainActivity.this, GameActivity.class);
+		    				startActivity(i);
+		    				MainActivity.this.finish();
+		        		}else if(cmd[3].equals("i")){
+		        			MessageDialog.dismiss();
+		        			Toast.makeText(MainActivity.this,"玩家拒絕挑戰", Toast.LENGTH_SHORT).show();
+		        		}
+	        		}
+	        		
+	        	}else if(type == "challenge"){
+	        		final String[] cmd = new String(revbuf).trim().split(":");
+	        		if(cmd[0].equals("n")){
+	        			MessageDialog.dismiss();
+	        			Toast.makeText(MainActivity.this, "該玩家已被挑戰中...", Toast.LENGTH_SHORT);
+	        		}else if(cmd[0].equals("s")){
+	        			//
+	        		}
+	        	}else if(type == "fight"){
+	        		
+	        	}
+	        	
+	        }else{
+	        	//Toast.makeText(MainActivity.this, "cannot connect", Toast.LENGTH_LONG).show();	
+	        	new AlertDialog.Builder(MainActivity.this).setTitle("連線錯誤").setMessage("伺服器連線失敗，請確認IP位置！").setCancelable(true).show();
+	        
+	        
+	        }
+        }
+    }
+	
+	
+	
+	private class AliveThread extends Thread{
+		
+		boolean flag = true;
+		
+		@Override
+		public void run(){
+			while(flag){
+				new SocketSend().execute(txt.getText().toString(),"ack");
+					
+				try{
+					Thread.sleep(ackTimeout);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	
+	
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}
+

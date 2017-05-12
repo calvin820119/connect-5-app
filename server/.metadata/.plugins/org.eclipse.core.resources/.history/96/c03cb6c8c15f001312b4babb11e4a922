@@ -1,0 +1,166 @@
+package com.example.finalprj;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
+
+import com.example.finalprj.MainActivity.SocketSend;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.view.Menu;
+import android.widget.RadioGroup;
+
+public class GameActivity extends Activity {
+	final int ackTimeout = 2000;
+	RadioGroup BoardColumn;
+	private String user;
+	private String fight_name;
+	
+	
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_game);
+		
+		BoardColumn = (RadioGroup) findViewById(R.id.rg0);
+		
+		final Drawable myIcon = getResources().getDrawable( R.drawable.black );
+		 
+		Bundle b = getIntent().getExtras();
+		user = b.getString("_USER");
+		fight_name = b.getString("_FIGHT_NAME");
+		
+		
+		BoardColumn.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				int x,y;
+				switch (checkedId){
+				case R.id.radio00:
+					x=0;	y=0;
+					findViewById(R.id.radio00).setEnabled(false);
+					findViewById(R.id.radio00).setBackground(myIcon);
+					break;
+				case R.id.radio01:
+					x=0;	y=1;
+					findViewById(R.id.radio01).setEnabled(false);
+					findViewById(R.id.radio01).setBackground(myIcon);
+					break;
+				case R.id.radio02:
+					x=0;	y=2;
+					findViewById(R.id.radio02).setEnabled(false);
+					findViewById(R.id.radio02).setBackground(myIcon);
+					break;
+				case R.id.radio03:
+					x=0;	y=3;
+					findViewById(R.id.radio03).setEnabled(false);
+					findViewById(R.id.radio03).setBackground(myIcon);
+					break;
+				case R.id.radio04:
+					x=0;	y=4;
+					findViewById(R.id.radio04).setEnabled(false);
+					findViewById(R.id.radio04).setBackground(myIcon);
+					break;
+				case R.id.radio05:
+					x=0;	y=5;
+					findViewById(R.id.radio05).setEnabled(false);
+					findViewById(R.id.radio05).setBackground(myIcon);
+					break;
+				case R.id.radio06:
+					x=0;	y=6;
+					findViewById(R.id.radio06).setEnabled(false);
+					findViewById(R.id.radio06).setBackground(myIcon);
+					break;
+				
+				case R.id.radio07:
+					x=0;	y=7;
+					findViewById(R.id.radio07).setEnabled(false);
+					findViewById(R.id.radio07).setBackground(myIcon);
+					break;
+				}
+				
+				
+			}
+			
+		});
+				
+	}
+	
+	private class SocketSend extends AsyncTask<String, Void, Void> {
+		byte[] sentbuf= new byte[1024];
+		byte[] revbuf= new byte[1024];
+		SocketAddress dstEP; 
+		InetAddress  dstIP;
+		Socket socket = null;
+		
+		final int dstPort = 30003;		// game server
+		String type;
+		String user;
+		@Override
+        protected void onPreExecute() {
+			super.onPreExecute();
+        	try{
+        		dstIP = InetAddress.getByName("192.168.0.3");
+        		dstEP = new InetSocketAddress(dstIP,dstPort);
+        	}
+        	catch(UnknownHostException e){
+        	}
+        	
+		}
+		
+        @Override
+        protected Void doInBackground(String... params) {
+        	return null;
+        }
+        
+        @Override
+        protected void onPostExecute(Void unused) {
+    		
+    	}
+	}
+	
+	/*
+	private class AliveThread extends Thread{
+		
+		boolean flag = true;
+		
+		@Override
+		public void run(){
+			while(flag){
+				new SocketSend().execute(txt.getText().toString(),"ack");
+					
+				try{
+					Thread.sleep(ackTimeout);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+*/
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}
+
+/*
+ <RadioButton
+            android1:id="@+id/radio0"
+            android1:layout_width="24dp"
+            android1:layout_height="23dp"
+            android1:background="@drawable/condition"
+            android1:button="@null" />
+ * */

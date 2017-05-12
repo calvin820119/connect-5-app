@@ -1,0 +1,67 @@
+package com.example.finalprj;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.graphics.drawable.Drawable;
+import android.os.Bundle;
+import android.view.Menu;
+import android.widget.RadioGroup;
+
+public class GameActivity extends Activity {
+
+	RadioGroup BoardColumn;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_game);
+		
+		gameBoard = (RadioGroup) findViewById(R.id.rg0);
+		
+		final Drawable myIcon = getResources().getDrawable( R.drawable.black );
+		 
+		 gameBoard.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			 
+			 
+			 
+			 
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				switch (checkedId){
+				case R.id.radio00:
+					findViewById(R.id.radio00).setEnabled(false);
+					findViewById(R.id.radio00).setBackground(myIcon);
+					break;
+				case R.id.radio01:
+					findViewById(R.id.radio01).setEnabled(false);
+					findViewById(R.id.radio01).setBackground(myIcon);
+					break;
+				case R.id.radio02:
+					findViewById(R.id.radio02).setEnabled(false);
+					findViewById(R.id.radio02).setBackground(myIcon);
+					break;
+				}
+			}
+		});
+				
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}
+
+/*
+ <RadioButton
+            android1:id="@+id/radio0"
+            android1:layout_width="24dp"
+            android1:layout_height="23dp"
+            android1:background="@drawable/condition"
+            android1:button="@null" />
+ * */

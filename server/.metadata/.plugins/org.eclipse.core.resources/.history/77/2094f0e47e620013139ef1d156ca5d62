@@ -1,0 +1,988 @@
+package com.example.finalprj;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.View;
+import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class GameActivity extends Activity {
+	final int ackTimeout = 2000;
+	String ServerIP = "";
+	String GAMEID = null;
+	private String user;
+	private String fight_name;
+	Button btn,exitbtn;
+	AliveThread at = null;
+	
+	boolean MyTurn = false;
+	
+	boolean[][] boardmap = new boolean[9][9];
+	
+	//graph item
+	RadioButton[][] board = new RadioButton[9][9];
+	RadioGroup BoardColumn0;
+	RadioGroup BoardColumn1;
+	RadioGroup BoardColumn2;
+	RadioGroup BoardColumn3;
+	RadioGroup BoardColumn4;
+	RadioGroup BoardColumn5;
+	RadioGroup BoardColumn6;
+	RadioGroup BoardColumn7;
+	RadioGroup BoardColumn8;
+	//
+	
+	private void SetEnable(Boolean set){
+		for(int i=0;i<9;i++){
+			for(int j=0;j<9;j++){
+				if(!boardmap[i][j])	
+					board[i][j].setEnabled(set);
+			}
+		}
+	}
+	
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_game);
+		
+		final Drawable blackIcon = getResources().getDrawable( R.drawable.black );
+		final Drawable whiteIcon = getResources().getDrawable( R.drawable.white );
+		
+	//	btn = (Button) findViewById(R.id.stop);
+		
+		exitbtn = (Button) findViewById(R.id.exitbtn);
+		
+		Bundle b = getIntent().getExtras();
+		user = b.getString("_USER");
+		fight_name = b.getString("_FIGHT_NAME");
+		GAMEID = b.getString("_GAMD_ID");
+		ServerIP = b.getString("_SERVER_IP");
+		TextView txtv2 =  (TextView) findViewById(R.id.textView2);
+		txtv2.setText("你: "+user);
+		TextView txtv3 = (TextView) findViewById(R.id.textView3);
+		txtv3.setText("對手: "+fight_name);
+		
+		at = new AliveThread();
+		at.start();
+		
+		BoardColumn0 = (RadioGroup) findViewById(R.id.rg0);
+		BoardColumn1 = (RadioGroup) findViewById(R.id.rg1);
+		BoardColumn2 = (RadioGroup) findViewById(R.id.rg2);
+		BoardColumn3 = (RadioGroup) findViewById(R.id.rg3);
+		BoardColumn4 = (RadioGroup) findViewById(R.id.rg4);
+		BoardColumn5 = (RadioGroup) findViewById(R.id.rg5);
+		BoardColumn6 = (RadioGroup) findViewById(R.id.rg6);
+		BoardColumn7 = (RadioGroup) findViewById(R.id.rg7);
+		BoardColumn8 = (RadioGroup) findViewById(R.id.rg8);
+		
+		board[0][0] = (RadioButton)findViewById(R.id.radio00);
+		board[0][1] = (RadioButton)findViewById(R.id.radio01);
+		board[0][2] = (RadioButton)findViewById(R.id.radio02);
+		board[0][3] = (RadioButton)findViewById(R.id.radio03);
+		board[0][4] = (RadioButton)findViewById(R.id.radio04);
+		board[0][5] = (RadioButton)findViewById(R.id.radio05);
+		board[0][6] = (RadioButton)findViewById(R.id.radio06);
+		board[0][7] = (RadioButton)findViewById(R.id.radio07);
+		board[0][8] = (RadioButton)findViewById(R.id.radio08);
+		
+		board[1][0] = (RadioButton)findViewById(R.id.RadioButton10);
+		board[1][1] = (RadioButton)findViewById(R.id.RadioButton11);
+		board[1][2] = (RadioButton)findViewById(R.id.RadioButton12);
+		board[1][3] = (RadioButton)findViewById(R.id.RadioButton13);
+		board[1][4] = (RadioButton)findViewById(R.id.RadioButton14);
+		board[1][5] = (RadioButton)findViewById(R.id.RadioButton15);
+		board[1][6] = (RadioButton)findViewById(R.id.RadioButton16);
+		board[1][7] = (RadioButton)findViewById(R.id.RadioButton17);
+		board[1][8] = (RadioButton)findViewById(R.id.RadioButton18);
+		
+		board[2][0] = (RadioButton)findViewById(R.id.RadioButton20);
+		board[2][1] = (RadioButton)findViewById(R.id.RadioButton21);
+		board[2][2] = (RadioButton)findViewById(R.id.RadioButton22);
+		board[2][3] = (RadioButton)findViewById(R.id.RadioButton23);
+		board[2][4] = (RadioButton)findViewById(R.id.RadioButton24);
+		board[2][5] = (RadioButton)findViewById(R.id.RadioButton25);
+		board[2][6] = (RadioButton)findViewById(R.id.RadioButton26);
+		board[2][7] = (RadioButton)findViewById(R.id.RadioButton27);
+		board[2][8] = (RadioButton)findViewById(R.id.RadioButton28);
+		
+		board[3][0] = (RadioButton)findViewById(R.id.RadioButton30);
+		board[3][1] = (RadioButton)findViewById(R.id.RadioButton31);
+		board[3][2] = (RadioButton)findViewById(R.id.RadioButton32);
+		board[3][3] = (RadioButton)findViewById(R.id.RadioButton33);
+		board[3][4] = (RadioButton)findViewById(R.id.RadioButton34);
+		board[3][5] = (RadioButton)findViewById(R.id.RadioButton35);
+		board[3][6] = (RadioButton)findViewById(R.id.RadioButton36);
+		board[3][7] = (RadioButton)findViewById(R.id.RadioButton37);
+		board[3][8] = (RadioButton)findViewById(R.id.RadioButton38);
+		
+		board[4][0] = (RadioButton)findViewById(R.id.RadioButton40);
+		board[4][1] = (RadioButton)findViewById(R.id.RadioButton41);
+		board[4][2] = (RadioButton)findViewById(R.id.RadioButton42);
+		board[4][3] = (RadioButton)findViewById(R.id.RadioButton43);
+		board[4][4] = (RadioButton)findViewById(R.id.RadioButton44);
+		board[4][5] = (RadioButton)findViewById(R.id.RadioButton45);
+		board[4][6] = (RadioButton)findViewById(R.id.RadioButton46);
+		board[4][7] = (RadioButton)findViewById(R.id.RadioButton47);
+		board[4][8] = (RadioButton)findViewById(R.id.RadioButton48);
+		
+		board[5][0] = (RadioButton)findViewById(R.id.RadioButton50);
+		board[5][1] = (RadioButton)findViewById(R.id.RadioButton51);
+		board[5][2] = (RadioButton)findViewById(R.id.RadioButton52);
+		board[5][3] = (RadioButton)findViewById(R.id.RadioButton53);
+		board[5][4] = (RadioButton)findViewById(R.id.RadioButton54);
+		board[5][5] = (RadioButton)findViewById(R.id.RadioButton55);
+		board[5][6] = (RadioButton)findViewById(R.id.RadioButton56);
+		board[5][7] = (RadioButton)findViewById(R.id.RadioButton57);
+		board[5][8] = (RadioButton)findViewById(R.id.RadioButton58);
+		
+		board[6][0] = (RadioButton)findViewById(R.id.RadioButton60);
+		board[6][1] = (RadioButton)findViewById(R.id.RadioButton61);
+		board[6][2] = (RadioButton)findViewById(R.id.RadioButton62);
+		board[6][3] = (RadioButton)findViewById(R.id.RadioButton63);
+		board[6][4] = (RadioButton)findViewById(R.id.RadioButton64);
+		board[6][5] = (RadioButton)findViewById(R.id.RadioButton65);
+		board[6][6] = (RadioButton)findViewById(R.id.RadioButton66);
+		board[6][7] = (RadioButton)findViewById(R.id.RadioButton67);
+		board[6][8] = (RadioButton)findViewById(R.id.RadioButton68);
+		
+		board[7][0] = (RadioButton)findViewById(R.id.RadioButton70);
+		board[7][1] = (RadioButton)findViewById(R.id.RadioButton71);
+		board[7][2] = (RadioButton)findViewById(R.id.RadioButton72);
+		board[7][3] = (RadioButton)findViewById(R.id.RadioButton73);
+		board[7][4] = (RadioButton)findViewById(R.id.RadioButton74);
+		board[7][5] = (RadioButton)findViewById(R.id.RadioButton75);
+		board[7][6] = (RadioButton)findViewById(R.id.RadioButton76);
+		board[7][7] = (RadioButton)findViewById(R.id.RadioButton77);
+		board[7][8] = (RadioButton)findViewById(R.id.RadioButton78);
+	
+		board[8][0] = (RadioButton)findViewById(R.id.RadioButton80);
+		board[8][1] = (RadioButton)findViewById(R.id.RadioButton81);
+		board[8][2] = (RadioButton)findViewById(R.id.RadioButton82);
+		board[8][3] = (RadioButton)findViewById(R.id.RadioButton83);
+		board[8][4] = (RadioButton)findViewById(R.id.RadioButton84);
+		board[8][5] = (RadioButton)findViewById(R.id.RadioButton85);
+		board[8][6] = (RadioButton)findViewById(R.id.RadioButton86);
+		board[8][7] = (RadioButton)findViewById(R.id.RadioButton87);
+		board[8][8] = (RadioButton)findViewById(R.id.RadioButton88);
+		
+		SetEnable(MyTurn);
+		
+		BoardColumn0.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.radio00:
+					x="0";	y="0";
+					board[0][0].setEnabled(false);
+					board[0][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio01:
+					x="0";	y="1";
+					board[0][1].setEnabled(false);
+					board[0][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio02:
+					x="0";	y="2";
+					board[0][2].setEnabled(false);
+					board[0][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio03:
+					x="0";	y="3";
+					board[0][3].setEnabled(false);
+					board[0][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio04:
+					x="0";	y="4";
+					board[0][4].setEnabled(false);
+					board[0][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio05:
+					x="0";	y="5";
+					board[0][5].setEnabled(false);
+					board[0][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio06:
+					x="0";	y="6";
+					board[0][6].setEnabled(false);
+					board[0][6].setBackgroundDrawable(blackIcon);
+					break;
+				
+				case R.id.radio07:
+					x="0";	y="7";
+					board[0][7].setEnabled(false);
+					board[0][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.radio08:
+					x="0";	y="8";
+					board[0][8].setEnabled(false);
+					board[0][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+				new SocketSend().execute(user,"draw",x,y);
+				
+        		
+        		
+			}
+		});
+		
+		BoardColumn1.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton10:
+					x="1";	y="0";
+					board[1][0].setEnabled(false);
+					board[1][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton11:
+					x="1";	y="1";
+					board[1][1].setEnabled(false);
+					board[1][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton12:
+					x="1";	y="2";
+					board[1][2].setEnabled(false);
+					board[1][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton13:
+					x="1";	y="3";
+					board[1][3].setEnabled(false);
+					board[1][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton14:
+					x="1";	y="4";
+					board[1][4].setEnabled(false);
+					board[1][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton15:
+					x="1";	y="5";
+					board[1][5].setEnabled(false);
+					board[1][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton16:
+					x="1";	y="6";
+					board[1][6].setEnabled(false);
+					board[1][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton17:
+					x="1";	y="7";
+					board[1][7].setEnabled(false);
+					board[1][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton18:
+					x="1";	y="8";
+					board[1][8].setEnabled(false);
+					board[1][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+				new SocketSend().execute(user,"draw",x,y);
+				
+			}
+		});
+		
+		BoardColumn2.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton20:
+					x="2";	y="0";
+					board[2][0].setEnabled(false);
+					board[2][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton21:
+					x="2";	y="1";
+					board[2][1].setEnabled(false);
+					board[2][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton22:
+					x="2";	y="2";
+					board[2][2].setEnabled(false);
+					board[2][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton23:
+					x="2";	y="3";
+					board[2][3].setEnabled(false);
+					board[2][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton24:
+					x="2";	y="4";
+					board[2][4].setEnabled(false);
+					board[2][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton25:
+					x="2";	y="5";
+					board[2][5].setEnabled(false);
+					board[2][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton26:
+					x="2";	y="6";
+					board[2][6].setEnabled(false);
+					board[2][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton27:
+					x="2";	y="7";
+					board[2][7].setEnabled(false);
+					board[2][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton28:
+					x="2";	y="8";
+					board[2][8].setEnabled(false);
+					board[2][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn3.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton30:
+					x="3";	y="0";
+					board[3][0].setEnabled(false);
+					board[3][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton31:
+					x="3";	y="1";
+					board[3][1].setEnabled(false);
+					board[3][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton32:
+					x="3";	y="2";
+					board[3][2].setEnabled(false);
+					board[3][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton33:
+					x="3";	y="3";
+					board[3][3].setEnabled(false);
+					board[3][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton34:
+					x="3";	y="4";
+					board[3][4].setEnabled(false);
+					board[3][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton35:
+					x="3";	y="5";
+					board[3][5].setEnabled(false);
+					board[3][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton36:
+					x="3";	y="6";
+					board[3][6].setEnabled(false);
+					board[3][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton37:
+					x="3";	y="7";
+					board[3][7].setEnabled(false);
+					board[3][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton38:
+					x="3";	y="8";
+					board[3][8].setEnabled(false);
+					board[3][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn4.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton40:
+					x="4";	y="0";
+					board[4][0].setEnabled(false);
+					board[4][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton41:
+					x="4";	y="1";
+					board[4][1].setEnabled(false);
+					board[4][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton42:
+					x="4";	y="2";
+					board[4][2].setEnabled(false);
+					board[4][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton43:
+					x="4";	y="3";
+					board[4][3].setEnabled(false);
+					board[4][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton44:
+					x="4";	y="4";
+					board[4][4].setEnabled(false);
+					board[4][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton45:
+					x="4";	y="5";
+					board[4][5].setEnabled(false);
+					board[4][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton46:
+					x="4";	y="6";
+					board[4][6].setEnabled(false);
+					board[4][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton47:
+					x="4";	y="7";
+					board[4][7].setEnabled(false);
+					board[4][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton48:
+					x="4";	y="8";
+					board[4][8].setEnabled(false);
+					board[4][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn5.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton50:
+					x="5";	y="0";
+					board[5][0].setEnabled(false);
+					board[5][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton51:
+					x="5";	y="1";
+					board[5][1].setEnabled(false);
+					board[5][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton52:
+					x="5";	y="2";
+					board[5][2].setEnabled(false);
+					board[5][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton53:
+					x="5";	y="3";
+					board[5][3].setEnabled(false);
+					board[5][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton54:
+					x="5";	y="4";
+					board[5][4].setEnabled(false);
+					board[5][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton55:
+					x="5";	y="5";
+					board[5][5].setEnabled(false);
+					board[5][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton56:
+					x="5";	y="6";
+					board[5][6].setEnabled(false);
+					board[5][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton57:
+					x="5";	y="7";
+					board[5][7].setEnabled(false);
+					board[5][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton58:
+					x="5";	y="8";
+					board[5][8].setEnabled(false);
+					board[5][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn6.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton60:
+					x="6";	y="0";
+					board[6][0].setEnabled(false);
+					board[6][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton61:
+					x="6";	y="1";
+					board[6][1].setEnabled(false);
+					board[6][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton62:
+					x="6";	y="2";
+					board[6][2].setEnabled(false);
+					board[6][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton63:
+					x="6";	y="3";
+					board[6][3].setEnabled(false);
+					board[6][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton64:
+					x="6";	y="4";
+					board[6][4].setEnabled(false);
+					board[6][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton65:
+					x="6";	y="5";
+					board[6][5].setEnabled(false);
+					board[6][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton66:
+					x="6";	y="6";
+					board[6][6].setEnabled(false);
+					board[6][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton67:
+					x="6";	y="7";
+					board[6][7].setEnabled(false);
+					board[6][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton68:
+					x="6";	y="8";
+					board[6][8].setEnabled(false);
+					board[6][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn7.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton70:
+					x="7";	y="0";
+					board[7][0].setEnabled(false);
+					board[7][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton71:
+					x="7";	y="1";
+					board[7][1].setEnabled(false);
+					board[7][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton72:
+					x="7";	y="2";
+					board[7][2].setEnabled(false);
+					board[7][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton73:
+					x="7";	y="3";
+					board[7][3].setEnabled(false);
+					board[7][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton74:
+					x="7";	y="4";
+					board[7][4].setEnabled(false);
+					board[7][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton75:
+					x="7";	y="5";
+					board[7][5].setEnabled(false);
+					board[7][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton76:
+					x="7";	y="6";
+					board[7][6].setEnabled(false);
+					board[7][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton77:
+					x="7";	y="7";
+					board[7][7].setEnabled(false);
+					board[7][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton78:
+					x="7";	y="8";
+					board[7][8].setEnabled(false);
+					board[7][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		BoardColumn8.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@SuppressLint("NewApi")
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				// TODO Auto-generated method stub
+				String x="",y="";
+				switch (checkedId){
+				case R.id.RadioButton80:
+					x="8";	y="0";
+					board[8][0].setEnabled(false);
+					board[8][0].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton81:
+					x="8";	y="1";
+					board[8][1].setEnabled(false);
+					board[8][1].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton82:
+					x="8";	y="2";
+					board[8][2].setEnabled(false);
+					board[8][2].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton83:
+					x="8";	y="3";
+					board[8][3].setEnabled(false);
+					board[8][3].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton84:
+					x="8";	y="4";
+					board[8][4].setEnabled(false);
+					board[8][4].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton85:
+					x="8";	y="5";
+					board[8][5].setEnabled(false);
+					board[8][5].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton86:
+					x="8";	y="6";
+					board[8][6].setEnabled(false);
+					board[8][6].setBackgroundDrawable(blackIcon);
+					break;				
+				case R.id.RadioButton87:
+					x="8";	y="7";
+					board[8][7].setEnabled(false);
+					board[8][7].setBackgroundDrawable(blackIcon);
+					break;
+				case R.id.RadioButton88:
+					x="8";	y="8";
+					board[8][8].setEnabled(false);
+					board[8][8].setBackgroundDrawable(blackIcon);
+					break;
+				}
+			
+				new SocketSend().execute(user,"draw",x,y);
+				MyTurn = false;		//set ui enable
+        		SetEnable(MyTurn);	//set ui enable
+			}
+		});
+		
+		for(int i=0;i<9;i++){
+			for(int j=0;j<9;j++){
+				boardmap[i][j] = false;
+			}
+		}
+		
+		/*
+		btn.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if(at.flag == true){
+					at.flag = false;
+					at.interrupt();
+					at = null;
+				}
+			}
+		});*/
+		
+		exitbtn.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				new SocketSend().execute(user,"exit");
+			}
+		});
+	}
+	
+	private class SocketSend extends AsyncTask<String, Void, Void> {
+		byte[] sentbuf= new byte[1024];
+		byte[] revbuf= new byte[1024];
+		SocketAddress dstEP; 
+		InetAddress  dstIP;
+		Socket socket = null;
+		
+		final int dstPort = 30003;		// game server
+		String type;
+	//	String user;
+		@Override
+        protected void onPreExecute() {
+			super.onPreExecute();
+        	try{
+        		dstIP = InetAddress.getByName(ServerIP);
+        		dstEP = new InetSocketAddress(dstIP,dstPort);
+        	}
+        	catch(UnknownHostException e){
+        	}
+        	
+		}
+		
+        @Override
+        protected Void doInBackground(String... params) {
+        	type = params[1];
+        	String TransStr = "";
+        	if(type == "ack"){
+        		TransStr += "ack:" + GAMEID+":" +params[0];
+        	}else if(type == "draw"){
+        		TransStr += "d:" +  GAMEID+":"+params[0]+":"+ params[2] +":"+ params[3];	//d:user:x:y
+        		boardmap[Integer.parseInt(params[2])][Integer.parseInt(params[3])] = true;
+        	}else if(type == "exit"){
+        		TransStr += "e:" + GAMEID +":"+ params[0];
+        	}
+        	
+        	try{
+				socket = new Socket();
+						
+				socket.connect(dstEP,2000);
+						
+				OutputStream out = null;
+				InputStream in = null;
+						
+				out = socket.getOutputStream();
+				in = socket.getInputStream();
+				sentbuf = new byte[TransStr.length() +10];
+				//System.arraycopy(TransStr.getBytes(), 0, sentbuf, 0, TransStr.length());
+				sentbuf = TransStr.getBytes("UTF-8");
+				out.write(sentbuf);
+				revbuf = new byte[1024];
+				in.read(revbuf);
+				socket.close();
+					
+	        }catch(SocketException e){
+	        //	txtv.setText(e.toString());
+	        }catch(IOException e){
+	        //	txtv.setText(e.toString());
+	        }
+        	
+        	return null;
+        }
+        
+        @SuppressLint("NewApi")
+		@Override
+        protected void onPostExecute(Void unused) {
+        	//final Drawable blackIcon = getResources().getDrawable( R.drawable.black );
+			final Drawable whiteIcon = getResources().getDrawable( R.drawable.white );
+			
+			try{
+			
+        	if(type == "ack"){
+        	//	Toast.makeText(GameActivity.this, new String(revbuf), Toast.LENGTH_SHORT).show();
+        		String[] cmd = new String(revbuf,"UTF-8").trim().split(":");
+        		//Iswin : winner : Isupdate : x(update) : y(update)
+        		
+        		if(cmd.length >= 4)
+        		if(cmd[4].equals("y")){
+    				int x = Integer.valueOf(cmd[5].trim()).intValue();
+    				int y = Integer.valueOf(cmd[6].trim()).intValue();
+    				
+    				if(x == -1 && y == -1);
+    				else{
+    					board[x][y].setBackgroundDrawable(whiteIcon);
+    					board[x][y].setEnabled(false);
+    					boardmap[x][y] = true;
+    				}
+    				if(!cmd[0].equals("w"))
+    					Toast.makeText(GameActivity.this, "your turn", Toast.LENGTH_LONG).show();
+    				MyTurn = true;		//set ui enable
+    				SetEnable(MyTurn);	//set ui enable
+    			//	TextView tv = (TextView) findViewById(R.id.msg);
+    			//	tv.setText(cmd[3]+","+cmd[4]);
+    			}
+        		
+        		
+        		if(cmd[0].equals("w")){
+        			at.flag = false;
+    				at.interrupt();
+    				at = null;
+        			
+        			if(cmd[1].equals("y")){
+        			//	Toast.makeText(GameActivity.this, "you win!", Toast.LENGTH_LONG).show();
+        				new AlertDialog.Builder(GameActivity.this).setTitle("遊戲結束").setMessage("你贏了!").setPositiveButton("返回登入畫面", new DialogInterface.OnClickListener() {
+    						
+    						@Override
+    						public void onClick(DialogInterface dialog, int which) {
+    							// TODO Auto-generated method stub
+    							//new ChallengeSend().execute(user,Suser);
+    							Intent i = new Intent();
+    			        		i.setClass(GameActivity.this, MainActivity.class);
+    			        		startActivity(i);
+    			        		GameActivity.this.finish();
+    						}
+    					}).show();
+        				
+        			}else if(cmd[1].equals("n")){
+        			//	Toast.makeText(GameActivity.this, "you lose!", Toast.LENGTH_LONG).show();
+        				new AlertDialog.Builder(GameActivity.this).setTitle("遊戲結束").setMessage("你輸了!").setPositiveButton("返回登入畫面", new DialogInterface.OnClickListener() {
+    						
+    						@Override
+    						public void onClick(DialogInterface dialog, int which) {
+    							// TODO Auto-generated method stub
+    							//new ChallengeSend().execute(user,Suser);
+    							Intent i = new Intent();
+    			        		i.setClass(GameActivity.this, MainActivity.class);
+    			        		startActivity(i);
+    			        		GameActivity.this.finish();
+    						}
+    					}).show();
+        			}
+        			//return to main form.
+        		}
+        		if(cmd.length >= 2)
+        		if(cmd[2].equals("y")){
+        			//	Toast.makeText(GameActivity.this,cmd[3] + "," + user,Toast.LENGTH_LONG).show();
+        				
+        			if(!cmd[3].equals(user)){
+        				Toast.makeText(GameActivity.this, "對手退出遊戲", Toast.LENGTH_LONG).show();
+        			}else{
+        				Toast.makeText(GameActivity.this, "已通知對手退出遊戲", Toast.LENGTH_LONG).show();
+        			}
+        				
+        			try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+        				
+        			if(at.flag == true){
+        				at.flag = false;
+        				at.interrupt();
+        				at = null;
+        			}
+        				
+        			Intent i = new Intent();
+        		//	Bundle b = new Bundle();
+        		//	b.putString("RetName", user);
+        		//	i.putExtras(b);
+        			i.setClass(GameActivity.this, MainActivity.class);
+        			startActivity(i);
+        			GameActivity.this.finish();
+        		}else{
+        			//
+        		}
+        		
+        	}else if(type == "draw"){
+        		
+        	/*	String[] cmd = new String(revbuf).split(":");
+        		if(cmd[0].equals("w")){
+        			at.flag = false;
+    				at.interrupt();
+    				at = null;
+        			Toast.makeText(GameActivity.this, "you win!", Toast.LENGTH_LONG).show();
+        			
+        		}
+        		if(cmd[0].equals("n")){
+        			//
+        		}*/
+        		
+        	}else if(type == "exit"){
+        		//
+        	}
+			}catch(Exception e){	e.printStackTrace();	}
+    	}
+	}
+	
+	
+	
+	private class AliveThread extends Thread{
+		
+		boolean flag = true;
+		
+		@Override
+		public void run(){
+			while(flag){
+				new SocketSend().execute(user,"ack");
+					
+				try{
+					Thread.sleep(ackTimeout);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}
+
+/*
+ <RadioButton
+            android1:id="@+id/radio0"
+            android1:layout_width="24dp"
+            android1:layout_height="23dp"
+            android1:background="@drawable/condition"
+            android1:button="@null" />
+ * */
